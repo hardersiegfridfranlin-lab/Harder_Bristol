@@ -1,2 +1,1 @@
-# Harder_Bristol
-git repo for collab
+This Java program is a simple idle clicker game built using Swing, where the player earns points by clicking a button and can purchase upgrades to generate points automatically over time. The game uses variables like score, clickPower, passiveIncome, and upgradeCost to manage progression. A timer runs every second to add passive income to the score, while the interface updates dynamically to reflect changes. Based on the output shown, the player has accumulated 379 points, currently has no passive income, and can buy an auto-click upgrade for 10 points to start earning automatically.
