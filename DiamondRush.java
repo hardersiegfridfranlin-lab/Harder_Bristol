@@ -1,10 +1,10 @@
-import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Properties;
 import java.util.Random;
+import javax.swing.*;
 
 public class DiamondRush extends JFrame {
 
@@ -254,8 +254,8 @@ public class DiamondRush extends JFrame {
     // ─── Rendering: Shop Panel ────────────────────────────────────────────────
     private class ShopPanel extends JPanel {
         private JLabel scoreLabel;
-        private JButton minerBtn, pickaxeBtn, resetBtn;
-        private JLabel minerInfo, pickaxeInfo;
+        private JButton minerBtn, mineBtn, pickaxeBtn, rubyBtn, sapphireBtn, emeraldBtn, diamondBtn, resetBtn;
+        private JLabel minerInfo, mineInfo, pickaxeInfo, rubyInfo, sapphireInfo, emeraldInfo, diamondInfo;
 
         ShopPanel() {
             setLayout(new BorderLayout());
@@ -295,6 +295,20 @@ public class DiamondRush extends JFrame {
             ));
             content.add(Box.createVerticalStrut(16));
 
+            // Mines upgrade
+            mineBtn = makeUpgradeButton("BUILD MINE", new Color(90, 60, 30));
+            mineBtn.addActionListener(e -> {
+                state.buyMine();
+                refresh();
+            });
+            mineInfo = makeInfoLabel();
+            content.add(makeUpgradeBlock(
+                mineBtn, mineInfo,
+                "Deep mines generate gems underground.",
+                new Color(120, 90, 50)
+            ));
+            content.add(Box.createVerticalStrut(16));
+
             // Pickaxe upgrade
             pickaxeBtn = makeUpgradeButton("SHARPEN PICKAXE", new Color(160, 90, 30));
             pickaxeBtn.addActionListener(e -> {
@@ -306,6 +320,75 @@ public class DiamondRush extends JFrame {
                 pickaxeBtn, pickaxeInfo,
                 "Increases gems per click.",
                 new Color(200, 120, 50)
+            ));
+
+            // GEM SHOP section
+            JLabel gemTitle = new JLabel("💎 GEM SHOP");
+            gemTitle.setForeground(new Color(255, 150, 200));
+            gemTitle.setFont(new Font("Verdana", Font.BOLD, 13));
+            gemTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+            content.add(gemTitle);
+            content.add(Box.createVerticalStrut(8));
+
+            JSeparator gemSep = new JSeparator();
+            gemSep.setForeground(new Color(150, 100, 150));
+            gemSep.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
+            content.add(gemSep);
+            content.add(Box.createVerticalStrut(12));
+
+            // Ruby
+            this.rubyBtn = makeUpgradeButton("RUBY GEM", new Color(200, 50, 50));
+            this.rubyBtn.addActionListener(e -> {
+                state.buyRuby();
+                refresh();
+            });
+            this.rubyInfo = makeInfoLabel();
+            content.add(makeUpgradeBlock(
+                this.rubyBtn, this.rubyInfo,
+                "Red gem: +0.5 gems/click per level",
+                new Color(255, 100, 100)
+            ));
+            content.add(Box.createVerticalStrut(12));
+
+// Sapphire
+            this.sapphireBtn = makeUpgradeButton("SAPPHIRE GEM", new Color(50, 100, 200));
+            this.sapphireBtn.addActionListener(e -> {
+                state.buySapphire();
+                refresh();
+            });
+            this.sapphireInfo = makeInfoLabel();
+            content.add(makeUpgradeBlock(
+                this.sapphireBtn, this.sapphireInfo,
+                "Blue gem: +1.0 gems/click per level",
+                new Color(100, 150, 255)
+            ));
+            content.add(Box.createVerticalStrut(12));
+
+            // Emerald
+            this.emeraldBtn = makeUpgradeButton("EMERALD GEM", new Color(50, 200, 50));
+            this.emeraldBtn.addActionListener(e -> {
+                state.buyEmerald();
+                refresh();
+            });
+            this.emeraldInfo = makeInfoLabel();
+            content.add(makeUpgradeBlock(
+                this.emeraldBtn, this.emeraldInfo,
+                "Green gem: +2.0 gems/click per level",
+                new Color(100, 255, 100)
+            ));
+            content.add(Box.createVerticalStrut(12));
+
+            // Diamond
+            this.diamondBtn = makeUpgradeButton("DIAMOND GEM", new Color(200, 200, 255));
+            this.diamondBtn.addActionListener(e -> {
+                state.buyDiamond();
+                refresh();
+            });
+            this.diamondInfo = makeInfoLabel();
+            content.add(makeUpgradeBlock(
+                this.diamondBtn, this.diamondInfo,
+                "Ultimate gem: +5.0 gems/click per level",
+                new Color(255, 255, 255)
             ));
 
             content.add(Box.createVerticalGlue());
@@ -331,25 +414,55 @@ public class DiamondRush extends JFrame {
             });
             content.add(resetBtn);
 
-            add(content, BorderLayout.CENTER);
-            refresh();
+add(content, BorderLayout.CENTER);
         }
+
 
         /** Called whenever state changes to update button labels/states. */
         void refresh() {
             int minerCost = state.nextAutoMinerCost();
+            int mineCost = state.nextMineCost();
             int pickCost  = state.nextPickaxeCost();
+            int rubyCost = state.nextRubyCost();
+            int sapphireCost = state.nextSapphireCost();
+            int emeraldCost = state.nextEmeraldCost();
+            int diamondCost = state.nextDiamondCost();
 
             minerBtn.setText("<html><center>AUTO-MINER Lv." + state.autoLevel
                 + "<br><small>Cost: " + formatScore(minerCost) + " gems</small></center></html>");
             minerBtn.setEnabled(state.score >= minerCost);
 
+            mineBtn.setText("<html><center>MINES Lv." + state.mineLevel
+                + "<br><small>Cost: " + formatScore(mineCost) + " gems</small></center></html>");
+            mineBtn.setEnabled(state.score >= mineCost);
+
             pickaxeBtn.setText("<html><center>PICKAXE Lv." + state.pickLevel
                 + "<br><small>Cost: " + formatScore(pickCost) + " gems</small></center></html>");
             pickaxeBtn.setEnabled(state.score >= pickCost);
 
-            minerInfo.setText("Passive: +" + formatScore(state.passiveIncome) + "/sec");
-            pickaxeInfo.setText("Click power: +" + formatScore(state.clickPower) + "/click");
+            rubyBtn.setText("<html><center>RUBY GEM Lv." + state.rubyLevel
+                + "<br><small>Cost: " + formatScore(rubyCost) + " gems</small></center></html>");
+            rubyBtn.setEnabled(state.score >= rubyCost);
+            rubyInfo.setText("+0.5/click (Lv. " + state.rubyLevel + ")");
+
+            sapphireBtn.setText("<html><center>SAPPHIRE GEM Lv." + state.sapphireLevel
+                + "<br><small>Cost: " + formatScore(sapphireCost) + " gems</small></center></html>");
+            sapphireBtn.setEnabled(state.score >= sapphireCost);
+            sapphireInfo.setText("+1.0/click (Lv. " + state.sapphireLevel + ")");
+
+            emeraldBtn.setText("<html><center>EMERALD GEM Lv." + state.emeraldLevel
+                + "<br><small>Cost: " + formatScore(emeraldCost) + " gems</small></center></html>");
+            emeraldBtn.setEnabled(state.score >= emeraldCost);
+            emeraldInfo.setText("+2.0/click (Lv. " + state.emeraldLevel + ")");
+
+            diamondBtn.setText("<html><center>DIAMOND GEM Lv." + state.diamondLevel
+                + "<br><small>Cost: " + formatScore(diamondCost) + " gems</small></center></html>");
+            diamondBtn.setEnabled(state.score >= diamondCost);
+            diamondInfo.setText("+5.0/click (Lv. " + state.diamondLevel + ")");
+
+            minerInfo.setText("Miners: +" + formatScore(state.passiveIncome - state.mineProduction) + "/sec");
+            mineInfo.setText("Mines: +" + formatScore(state.mineProduction) + "/sec");
+            pickaxeInfo.setText("Pickaxe power: " + formatScore(state.clickPower - (state.rubyLevel * 0.5 + state.sapphireLevel * 1.0 + state.emeraldLevel * 2.0 + state.diamondLevel * 5.0)) + "/click");
         }
 
         @Override
@@ -422,6 +535,8 @@ public class DiamondRush extends JFrame {
             stats.add(makeStatRow("Total Clicks", () -> formatScore(state.totalClicks)));
             stats.add(makeStatRow("Gems/sec", () -> formatScore(state.passiveIncome)));
             stats.add(makeStatRow("Click power", () -> formatScore(state.clickPower)));
+            stats.add(makeStatRow("Mine Lv.", () -> String.valueOf(state.mineLevel)));
+            stats.add(makeStatRow("Mine prod.", () -> formatScore(state.mineProduction) + "/sec"));
             return stats;
         }
 
@@ -451,12 +566,18 @@ public class DiamondRush extends JFrame {
     }
 
     // ─── Game State ───────────────────────────────────────────────────────────
-    static class GameState {
+static class GameState {
         double score       = 0;
         int passiveIncome  = 0;
+        int mineLevel      = 0;
+        int mineProduction = 0;
         int autoLevel      = 0;
-        int clickPower     = 1;
+        double clickPower  = 1.0;
         int pickLevel      = 0;
+        int rubyLevel      = 0;
+        int sapphireLevel = 0;
+        int emeraldLevel  = 0;
+        int diamondLevel  = 0;
         long totalClicks   = 0;
 
         /** Cost scales with level: 10 * 1.15^level */
@@ -467,6 +588,28 @@ public class DiamondRush extends JFrame {
         /** Cost scales with level: 15 * 1.5^level */
         int nextPickaxeCost() {
             return (int)(15 * Math.pow(1.5, pickLevel));
+        }
+
+        /** Mine cost: 8 * 1.12^level */
+        int nextMineCost() {
+            return (int)(8 * Math.pow(1.12, mineLevel));
+        }
+
+        /** Gem costs */
+        int nextRubyCost() {
+            return (int)(20 * Math.pow(1.18, rubyLevel));
+        }
+
+        int nextSapphireCost() {
+            return (int)(35 * Math.pow(1.22, sapphireLevel));
+        }
+
+        int nextEmeraldCost() {
+            return (int)(50 * Math.pow(1.25, emeraldLevel));
+        }
+
+        int nextDiamondCost() {
+            return (int)(100 * Math.pow(1.30, diamondLevel));
         }
 
         void buyAutoMiner() {
@@ -487,14 +630,72 @@ public class DiamondRush extends JFrame {
                 clickPower = 1 + (pickLevel * 2) + (pickLevel / 3) * 3;
             }
         }
+
+        void buyMine() {
+            int cost = nextMineCost();
+            if (score >= cost) {
+                score -= cost;
+                mineLevel++;
+                mineProduction = (int)(mineLevel * 0.8 + (mineLevel / 10));
+                passiveIncome = autoLevel + (autoLevel / 5) * 2 + mineProduction;
+            }
+        }
+
+        void buyRuby() {
+            int cost = nextRubyCost();
+            if (score >= cost) {
+                score -= cost;
+                rubyLevel++;
+                recomputeStats();
+            }
+        }
+
+        void buySapphire() {
+            int cost = nextSapphireCost();
+            if (score >= cost) {
+                score -= cost;
+                sapphireLevel++;
+                recomputeStats();
+            }
+        }
+
+        void buyEmerald() {
+            int cost = nextEmeraldCost();
+            if (score >= cost) {
+                score -= cost;
+                emeraldLevel++;
+                recomputeStats();
+            }
+        }
+
+        void buyDiamond() {
+            int cost = nextDiamondCost();
+            if (score >= cost) {
+                score -= cost;
+                diamondLevel++;
+                recomputeStats();
+            }
+        }
+
+        void recomputeStats() {
+            mineProduction = (int)(mineLevel * 0.8 + (mineLevel / 10));
+            passiveIncome = autoLevel + (autoLevel / 5) * 2 + mineProduction;
+            clickPower = 1 + (pickLevel * 2) + (pickLevel / 3) * 3 + 
+                         rubyLevel * 0.5 + sapphireLevel * 1.0 + emeraldLevel * 2.0 + diamondLevel * 5.0;
+        }
     }
 
     // ─── Persistence ──────────────────────────────────────────────────────────
     private void saveGame() {
         Properties p = new Properties();
         p.setProperty("score",        String.valueOf(state.score));
+        p.setProperty("mineLevel",    String.valueOf(state.mineLevel));
         p.setProperty("autoLevel",    String.valueOf(state.autoLevel));
         p.setProperty("pickLevel",    String.valueOf(state.pickLevel));
+        p.setProperty("rubyLevel",    String.valueOf(state.rubyLevel));
+        p.setProperty("sapphireLevel",String.valueOf(state.sapphireLevel));
+        p.setProperty("emeraldLevel", String.valueOf(state.emeraldLevel));
+        p.setProperty("diamondLevel", String.valueOf(state.diamondLevel));
         p.setProperty("totalClicks",  String.valueOf(state.totalClicks));
         try (FileOutputStream out = new FileOutputStream(SAVE_FILE)) {
             p.store(out, "Diamond Rush Save");
@@ -505,13 +706,17 @@ public class DiamondRush extends JFrame {
         Properties p = new Properties();
         try (FileInputStream in = new FileInputStream(SAVE_FILE)) {
             p.load(in);
-            state.score       = Double.parseDouble(p.getProperty("score",       "0"));
-            state.autoLevel   = Integer.parseInt(p.getProperty("autoLevel",     "0"));
-            state.pickLevel   = Integer.parseInt(p.getProperty("pickLevel",     "0"));
-            state.totalClicks = Long.parseLong(p.getProperty("totalClicks",     "0"));
+            state.score        = Double.parseDouble(p.getProperty("score",        "0"));
+            state.mineLevel    = Integer.parseInt(p.getProperty("mineLevel",      "0"));
+            state.autoLevel    = Integer.parseInt(p.getProperty("autoLevel",      "0"));
+            state.pickLevel    = Integer.parseInt(p.getProperty("pickLevel",      "0"));
+            state.rubyLevel    = Integer.parseInt(p.getProperty("rubyLevel",      "0"));
+            state.sapphireLevel= Integer.parseInt(p.getProperty("sapphireLevel",  "0"));
+            state.emeraldLevel = Integer.parseInt(p.getProperty("emeraldLevel",   "0"));
+            state.diamondLevel = Integer.parseInt(p.getProperty("diamondLevel",   "0"));
+            state.totalClicks  = Long.parseLong(p.getProperty("totalClicks",      "0"));
             // Recompute derived stats from levels
-            state.passiveIncome = state.autoLevel + (state.autoLevel / 5) * 2;
-            state.clickPower    = 1 + (state.pickLevel * 2) + (state.pickLevel / 3) * 3;
+            state.recomputeStats();
         } catch (Exception ignored) {}
     }
 
