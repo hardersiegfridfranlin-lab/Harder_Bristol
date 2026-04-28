@@ -6,6 +6,38 @@ import java.util.Properties;
 import java.util.Random;
 import javax.swing.*;
 
+/*
+ * 💎 Diamond Rush: Professional Edition
+ *
+ * Description:
+ *   A Java Swing idle clicker game where you mine gems by clicking the diamond,
+ *   buy upgrades, unlock multipliers, and boost passive income.
+ *
+ * How to Run:
+ *   Compile : javac DiamondRush.java
+ *   Run     : java DiamondRush
+ *
+ * Controls:
+ *   - Click diamond  — mine gems
+ *   - Shop buttons   — buy upgrades
+ *   - Mouse wheel    — scroll shop panel
+ *   - Reset button   — restart game (with confirmation)
+ *
+ * Features:
+ *   - Upgrades: Auto Miner, Build Mine, Sharpen Pickaxe
+ *   - Gem multipliers: Iron -> Gold -> Ruby -> Sapphire -> Emerald -> Diamond
+ *   - Auto Miner skins: Shovel -> Pickaxe -> Jackhammer
+ *   - Visual effects: pulsing gem, screen shake, floating +score text
+ *   - Auto-save to diamond-rush-save.properties every 5 seconds
+ *
+ * Architecture Overview:
+ *   - GameState    — all mutable game data; no rendering logic
+ *   - GameCanvas   — left panel; draws the gem, score, and popups
+ *   - ShopPanel    — right panel; upgrade buttons and live stats
+ *   - GemUpgrade   — enum of purchasable click-multiplier gems
+ *   - AutoMinerSkin — enum of purchasable auto-speed skins
+ *   - FloatingText — lightweight DTO for animated +score popups
+ */
 public class DiamondRush extends JFrame {
 
     // ─── State ────────────────────────────────────────────────────────────────
@@ -595,6 +627,9 @@ public class DiamondRush extends JFrame {
     }
 
     // ─── Gem Upgrade Enum ─────────────────────────────────────────────────────
+    // Purchasable click-multiplier gems, unlocked sequentially.
+    // Each gem costs gems, resets the gem count on purchase, and boosts
+    // every manual click by its multiplier factor.
     enum GemUpgrade {
         IRON    ("⬜ IRON GEM",     500,    1.5,  "x1.5",
                  new Color(140,140,150), new Color(200,200,210),
@@ -636,6 +671,8 @@ public class DiamondRush extends JFrame {
     }
 
     // ─── Auto Miner Skin Enum ─────────────────────────────────────────────────
+    // Purchasable auto-mining speed skins, unlocked sequentially.
+    // Each skin multiplies the passive income tick by speedMultiplier.
     enum AutoMinerSkin {
         SHOVEL     ("🪓 SHOVEL",      5_000,  2.0,
                     new Color(120, 80, 40),  new Color(180, 130, 70),
@@ -666,6 +703,8 @@ public class DiamondRush extends JFrame {
     }
 
     // ─── Game State ───────────────────────────────────────────────────────────
+    // Holds all mutable game data with zero rendering logic.
+    // Persisted to / restored from diamond-rush-save.properties.
     static class GameState {
         double score        = 0;
         int passiveIncome   = 0;
@@ -902,6 +941,8 @@ public class DiamondRush extends JFrame {
     }
 
     // ─── Floating Text ────────────────────────────────────────────────────────
+    // Lightweight data-transfer object for animated +score popup text.
+    // Each instance fades upward over ~45 frames then is discarded.
     private static class FloatingText {
         String text;
         float x, y;
