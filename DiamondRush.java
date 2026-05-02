@@ -27,7 +27,7 @@ import javax.swing.*;
  *   - Upgrades: Auto Miner, Build Mine, Sharpen Pickaxe
  *   - Gem multipliers: Iron -> Gold -> Ruby -> Sapphire -> Emerald -> Diamond
  *   - Auto Miner skins: Shovel -> Pickaxe -> Jackhammer
- *   - Visual effects: pulsing gem, screen shake, floating +score text
+ *   - Visual effects: pulsing gem, screen shake (diamond only), floating +score text
  *   - Auto-save to diamond-rush-save.properties every 5 seconds
  *
  * Architecture Overview:
@@ -181,12 +181,8 @@ public class DiamondRush extends JFrame {
             for (int x = 0; x < W; x += 40) g2.drawLine(x, 0, x, H);
             for (int y = 0; y < H; y += 40) g2.drawLine(0, y, W, y);
 
+            // Stable context — NO shake here (score, badges, popups, hint all stay still)
             Graphics2D g2s = (Graphics2D) g2.create();
-            if (shakeIntensity > 0.5f) {
-                float dx = (rand.nextFloat() - 0.5f) * shakeIntensity;
-                float dy = (rand.nextFloat() - 0.5f) * shakeIntensity;
-                g2s.translate(dx, dy);
-            }
 
             // Score display
             g2s.setColor(new Color(180, 160, 120));
@@ -228,46 +224,62 @@ public class DiamondRush extends JFrame {
                 g2s.drawString(state.getActiveSkinName() + "  x" + String.format("%.0f", state.autoSkinMultiplier) + " auto speed", 34, 197);
             }
 
-            // Diamond
+            // ── Diamond: shake applies ONLY to this context ──────────────────
             pulseAngle += 0.04f;
             int pulseMag = (int)(Math.sin(pulseAngle) * 4);
             int centerX = W / 2;
             int centerY = H / 2 + 20;
-            int size = 140 + pulseMag + (int)(shakeIntensity * 1.5f);
+            int size = 140 + pulseMag;
 
             Color gemTopColor = state.getActiveDiamondTopColor();
             Color gemBotColor = state.getActiveDiamondBotColor();
 
+            // Compute diamond polygon in stable coordinates (used for click detection)
             int[] xPts = {centerX, centerX + size / 2, centerX, centerX - size / 2};
             int[] yPts = {centerY - size / 2, centerY, centerY + size / 2, centerY};
             diamond = new Polygon(xPts, yPts, 4);
 
+            // Create a separate child context just for the diamond so shake
+            // only affects it and not the rest of the UI
+            Graphics2D g2d = (Graphics2D) g2s.create();
+            if (shakeIntensity > 0.5f) {
+                float dx = (rand.nextFloat() - 0.5f) * shakeIntensity;
+                float dy = (rand.nextFloat() - 0.5f) * shakeIntensity;
+                g2d.translate(dx, dy);
+            }
+
+            // Glow layers
             for (int i = 3; i >= 1; i--) {
                 int gSize = size + i * 10;
                 int[] gxPts = {centerX, centerX + gSize / 2, centerX, centerX - gSize / 2};
                 int[] gyPts = {centerY - gSize / 2, centerY, centerY + gSize / 2, centerY};
                 Color glowC = state.getActiveGlowColor(i);
-                g2s.setColor(glowC);
-                g2s.fillPolygon(new Polygon(gxPts, gyPts, 4));
+                g2d.setColor(glowC);
+                g2d.fillPolygon(new Polygon(gxPts, gyPts, 4));
             }
 
+            // Diamond fill
             GradientPaint gem = new GradientPaint(
                 centerX, centerY - size / 2, gemTopColor,
                 centerX, centerY + size / 2, gemBotColor
             );
-            g2s.setPaint(gem);
-            g2s.fill(diamond);
+            g2d.setPaint(gem);
+            g2d.fill(diamond);
 
+            // Highlight
             int[] hlX = {centerX, centerX - size / 4, centerX};
             int[] hlY = {centerY - size / 2, centerY - size / 8, centerY - size / 4};
-            g2s.setColor(new Color(255, 255, 255, 80));
-            g2s.fillPolygon(new Polygon(hlX, hlY, 3));
+            g2d.setColor(new Color(255, 255, 255, 80));
+            g2d.fillPolygon(new Polygon(hlX, hlY, 3));
 
-            g2s.setColor(new Color(200, 230, 255, 200));
-            g2s.setStroke(new BasicStroke(2f));
-            g2s.draw(diamond);
+            // Outline
+            g2d.setColor(new Color(200, 230, 255, 200));
+            g2d.setStroke(new BasicStroke(2f));
+            g2d.draw(diamond);
 
-            // Floating text popups
+            g2d.dispose(); // done with shaking diamond context
+
+            // ── Floating text popups (stable — no shake) ─────────────────────
             g2s.setFont(new Font("Arial", Font.BOLD, 18));
             for (FloatingText ft : popups) {
                 float alpha = Math.max(0, ft.alpha);
@@ -402,11 +414,9 @@ public class DiamondRush extends JFrame {
             scroll.setOpaque(false);
             scroll.getViewport().setOpaque(false);
             scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-            // Smooth, fast, consistent scrolling
             JScrollBar vsb = scroll.getVerticalScrollBar();
-            vsb.setUnitIncrement(20);   // per arrow-click / mouse wheel notch
-            vsb.setBlockIncrement(80);  // per page-up/page-down
-            // Smooth wheel scrolling via MouseWheelListener
+            vsb.setUnitIncrement(20);
+            vsb.setBlockIncrement(80);
             scroll.removeMouseWheelListener(scroll.getMouseWheelListeners()[0]);
             scroll.addMouseWheelListener(e -> {
                 int delta = e.getWheelRotation() * vsb.getUnitIncrement();
@@ -627,9 +637,6 @@ public class DiamondRush extends JFrame {
     }
 
     // ─── Gem Upgrade Enum ─────────────────────────────────────────────────────
-    // Purchasable click-multiplier gems, unlocked sequentially.
-    // Each gem costs gems, resets the gem count on purchase, and boosts
-    // every manual click by its multiplier factor.
     enum GemUpgrade {
         IRON    ("⬜ IRON GEM",     500,    1.5,  "x1.5",
                  new Color(140,140,150), new Color(200,200,210),
@@ -671,8 +678,6 @@ public class DiamondRush extends JFrame {
     }
 
     // ─── Auto Miner Skin Enum ─────────────────────────────────────────────────
-    // Purchasable auto-mining speed skins, unlocked sequentially.
-    // Each skin multiplies the passive income tick by speedMultiplier.
     enum AutoMinerSkin {
         SHOVEL     ("🪓 SHOVEL",      5_000,  2.0,
                     new Color(120, 80, 40),  new Color(180, 130, 70),
@@ -703,8 +708,6 @@ public class DiamondRush extends JFrame {
     }
 
     // ─── Game State ───────────────────────────────────────────────────────────
-    // Holds all mutable game data with zero rendering logic.
-    // Persisted to / restored from diamond-rush-save.properties.
     static class GameState {
         double score        = 0;
         int passiveIncome   = 0;
@@ -715,35 +718,26 @@ public class DiamondRush extends JFrame {
         int pickLevel       = 0;
         long totalClicks    = 0;
 
-        // Click multiplier (from Gem Shop — highest owned gem's multiplier)
-        double clickMultiplier  = 1.0;
-
-        // Auto miner skin multiplier (highest owned skin)
+        double clickMultiplier    = 1.0;
         double autoSkinMultiplier = 1.0;
 
-        // Gem ownership — indexed by GemUpgrade.ordinal()
-        boolean[] gemsOwned = new boolean[GemUpgrade.values().length];
-
-        // Skin ownership — indexed by AutoMinerSkin.ordinal()
+        boolean[] gemsOwned  = new boolean[GemUpgrade.values().length];
         boolean[] skinsOwned = new boolean[AutoMinerSkin.values().length];
 
         // ── Gem purchase ────────────────────────────────────────────────────
         boolean buyGem(GemUpgrade gem) {
             int idx = gem.ordinal();
-            if (gemsOwned[idx]) return false;                          // already owned
-            if (idx > 0 && !gemsOwned[idx - 1]) return false;         // prereq not met
-            if (score < gem.cost) return false;                        // can't afford
-
+            if (gemsOwned[idx]) return false;
+            if (idx > 0 && !gemsOwned[idx - 1]) return false;
+            if (score < gem.cost) return false;
             score -= gem.cost;
             gemsOwned[idx] = true;
-            score = 0;     // gem-count reset mechanic
+            score = 0;
             recomputeMultipliers();
             return true;
         }
 
-        boolean isGemOwned(GemUpgrade gem) {
-            return gemsOwned[gem.ordinal()];
-        }
+        boolean isGemOwned(GemUpgrade gem) { return gemsOwned[gem.ordinal()]; }
 
         // ── Skin purchase ────────────────────────────────────────────────────
         boolean buySkin(AutoMinerSkin skin) {
@@ -758,9 +752,7 @@ public class DiamondRush extends JFrame {
             return true;
         }
 
-        boolean isSkinOwned(AutoMinerSkin skin) {
-            return skinsOwned[skin.ordinal()];
-        }
+        boolean isSkinOwned(AutoMinerSkin skin) { return skinsOwned[skin.ordinal()]; }
 
         // ── Recompute combined multipliers ───────────────────────────────────
         void recomputeMultipliers() {
@@ -841,7 +833,6 @@ public class DiamondRush extends JFrame {
             return new Color(base.getRed(), base.getGreen(), base.getBlue(), 15 * intensity);
         }
 
-        // ── Upgrade costs ────────────────────────────────────────────────────
         int nextAutoMinerCost() { return (int)(10 * Math.pow(1.15, autoLevel)); }
         int nextPickaxeCost()   { return (int)(15 * Math.pow(1.5,  pickLevel)); }
         int nextMineCost()      { return (int)(8  * Math.pow(1.12, mineLevel)); }
@@ -890,16 +881,10 @@ public class DiamondRush extends JFrame {
         p.setProperty("autoLevel",   String.valueOf(state.autoLevel));
         p.setProperty("pickLevel",   String.valueOf(state.pickLevel));
         p.setProperty("totalClicks", String.valueOf(state.totalClicks));
-
-        // Gems
-        GemUpgrade[] gems = GemUpgrade.values();
-        for (GemUpgrade gem : gems) {
+        for (GemUpgrade gem : GemUpgrade.values()) {
             p.setProperty("gem_" + gem.name(), String.valueOf(state.gemsOwned[gem.ordinal()]));
         }
-
-        // Skins
-        AutoMinerSkin[] skins = AutoMinerSkin.values();
-        for (AutoMinerSkin skin : skins) {
+        for (AutoMinerSkin skin : AutoMinerSkin.values()) {
             p.setProperty("skin_" + skin.name(), String.valueOf(state.skinsOwned[skin.ordinal()]));
         }
 
